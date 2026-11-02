@@ -67,11 +67,54 @@
   .topbar .status b { color: var(--text); font-weight: 600; font-variant-numeric: tabular-nums; }
   .topbar .spacer { flex: 1; }
 
+  /* ---------- VIP：名字里带“海哥”的人 ---------- */
+  @keyframes vipspin { to { transform: translate(-50%, -50%) rotate(360deg); } }
+  @keyframes vipglow {
+    0%, 100% { box-shadow: 0 0 14px rgba(232,196,106,.18), inset 0 0 20px rgba(232,196,106,.06); }
+    50% { box-shadow: 0 0 30px rgba(232,196,106,.34), inset 0 0 26px rgba(232,196,106,.10); }
+  }
+  .vip-tag {
+    display: inline-flex; align-items: center; gap: 3px;
+    font-size: 9.5px; font-weight: 700; letter-spacing: .08em; white-space: nowrap; flex: 0 0 auto;
+    padding: 2px 7px; border-radius: 999px; color: #22190A;
+    background: linear-gradient(100deg, #C9A24A, #F6E3B4 40%, #E8C46A 60%, #C9A24A);
+    background-size: 200% 100%;
+    animation: vipshine 3s linear infinite;
+  }
+  @keyframes vipshine { to { background-position: -200% 0; } }
+
+  /* 记分牌上的 VIP：转动的金色描边 + 呼吸光 */
+  .pick.vip { overflow: hidden; border-color: transparent; animation: vipglow 2.6s ease-in-out infinite; }
+  .pick.vip::before {
+    content: ''; position: absolute; left: 50%; top: 50%; width: 240%; aspect-ratio: 1;
+    background: conic-gradient(from 0deg, #3A2F14 0%, #C9A24A 12%, #FFF6DC 20%, #E8C46A 26%, #3A2F14 42%, #3A2F14 100%);
+    animation: vipspin 2.8s linear infinite;
+  }
+  .pick.vip::after {
+    content: ''; position: absolute; inset: 2.5px; border-radius: calc(var(--r-panel) - 2.5px);
+    background: var(--surface);
+  }
+  .pick.vip > * { position: relative; z-index: 1; }
+  .pick.vip .pname { color: #F6E3B4; }
+  .pick.vip .pscore { color: #FFF3D2; text-shadow: 0 0 18px rgba(232,196,106,.45); }
+
+  /* 列表、报告里的 VIP：金色名字 + 小标签 */
+  .name-vip { color: #F0CE7E !important; }
+  .row .name-vip { font-weight: 600; }
+  .rank-row.vip .nm { color: #F0CE7E; }
+
+  /* 开局输入框里的 VIP */
+  .name-row.vip input { border-color: rgba(232,196,106,.75); box-shadow: 0 0 0 1px rgba(232,196,106,.35), 0 0 18px rgba(232,196,106,.15); }
+  .name-row { position: relative; }
+  .vip-badgeslot { position: absolute; right: 52px; top: 50%; transform: translateY(-50%); display: none; pointer-events: none; }
+  .name-row.vip .vip-badgeslot { display: flex; align-items: center; }
+
   /* 对局：提问 */
   .mid { flex: 1; display: flex; flex-direction: column; justify-content: flex-start; min-height: 0; padding-top: 18px; }
   .ask { font-size: 22px; font-weight: 600; letter-spacing: -.02em; margin: 0 0 14px; }
   .picks { display: grid; grid-template-columns: 1fr 1fr; gap: var(--gap); margin-bottom: var(--gap); }
   .pick {
+    position: relative;
     appearance: none; font: inherit; text-align: left; cursor: pointer; color: var(--text);
     background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-panel);
     padding: 18px 16px 16px; min-height: 248px; display: flex; flex-direction: column; justify-content: space-between;
@@ -139,7 +182,7 @@
   .addname:active { border-color: #2C6350; color: var(--text); }
   .names { display: flex; flex-direction: column; gap: 10px; margin-bottom: 22px; }
   .name-row { display: flex; align-items: center; gap: 12px; }
-  .name-row span { width: 16px; color: var(--dim); font-size: 12px; font-variant-numeric: tabular-nums; }
+  .name-row .idx { width: 16px; flex: 0 0 16px; color: var(--dim); font-size: 12px; font-variant-numeric: tabular-nums; }
   .name-row input {
     flex: 1; font: inherit; font-size: 15px; padding: 14px; color: var(--text);
     background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-btn); outline: none;
@@ -302,7 +345,10 @@
 
 <script id="rules">
 (function (global) {
-  const NAMES = ['小李', '小王', '小张'];
+  const NAMES = ['海哥', '王招'];
+
+  // 名字里带“海哥”的人，界面上按 VIP 显示
+  function isVip(name) { return String(name || '').indexOf('海哥') !== -1; }
 
   function createMatch(names, startedAt) {
     const players = names.map(function (name, i) {
@@ -401,7 +447,7 @@
     return lines.join('\n');
   }
 
-  const api = { NAMES: NAMES, createMatch: createMatch, migrate: migrate, recordWin: recordWin, swapPlayers: swapPlayers, ranking: ranking,
+  const api = { NAMES: NAMES, isVip: isVip, createMatch: createMatch, migrate: migrate, recordWin: recordWin, swapPlayers: swapPlayers, ranking: ranking,
     durationText: durationText, dateText: dateText, textReport: textReport };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   if (global) global.Rules = api;
@@ -416,7 +462,7 @@
   const $ = function (id) { return document.getElementById(id); };
 
   const MAX_PLAYERS = 8;
-  let setupNames = R.NAMES.slice();
+  let setupNames = ['', ''];
   let match = null;
   let undoStack = [];
   let undoLabels = [];
@@ -484,8 +530,16 @@
       const del = setupNames.length > 2
         ? '<button class="del" data-i="' + i + '" aria-label="删掉这个人">×</button>'
         : '<span style="width:32px"></span>';
-      row.innerHTML = '<span>' + (i + 1) + '</span><input maxlength="8" value="' + (name || '') + '" placeholder="' + (R.NAMES[i] || '第 ' + (i + 1) + ' 人') + '">' + del;
-      row.querySelector('input').addEventListener('input', function (e) { setupNames[i] = e.target.value; });
+      row.innerHTML = '<span class="idx">' + (i + 1) + '</span><input maxlength="8" value="' + (name || '') + '" placeholder="' + (R.NAMES[i] || '第' + (i + 1) + '人') + '">' + del +
+        '<span class="vip-badgeslot"></span>';
+      const input = row.querySelector('input');
+      function syncVip() {
+        const vip = R.isVip(input.value || R.NAMES[i] || '');
+        row.classList.toggle('vip', vip);
+        row.querySelector('.vip-badgeslot').innerHTML = vip ? '<span class="vip-tag">VIP</span>' : '';
+      }
+      input.addEventListener('input', function (e) { setupNames[i] = e.target.value; syncVip(); });
+      syncVip();
       const db = row.querySelector('.del');
       if (db) db.addEventListener('click', function () {
         if (setupNames.length <= 2) { toast('最少两个人'); return; }
@@ -532,8 +586,9 @@
     match.onTable.forEach(function (id) {
       const p = match.players[id];
       const b = document.createElement('button');
-      b.className = 'pick'; b.dataset.pid = id;
-      const streak = p.streak >= 2 ? '<span class="streak">' + p.streak + ' 连胜</span>' : '';
+      b.className = 'pick' + (R.isVip(p.name) ? ' vip' : ''); b.dataset.pid = id;
+      const streak = (R.isVip(p.name) ? '<span class="vip-tag">VIP</span>' : '') +
+        (p.streak >= 2 ? '<span class="streak">' + p.streak + ' 连胜</span>' : '');
       b.innerHTML = '<div class="pname">' + p.name + streak + '</div>' +
         '<div class="pscore">' + (p.score > 0 ? '+' + p.score : p.score) + '</div>' +
         '<div class="pmeta">' + p.wins + ' 胜 ' + p.losses + ' 负</div>';
@@ -593,7 +648,8 @@
       const onTable = match.onTable.indexOf(p.id) !== -1;
       const row = document.createElement('div');
       row.className = 'row';
-      row.innerHTML = '<span class="nm">' + p.name + '</span><span class="wl">' + p.wins + '-' + p.losses + '</span>' +
+      row.innerHTML = '<span class="nm' + (R.isVip(p.name) ? ' name-vip' : '') + '">' + p.name + '</span>' +
+        '<span class="wl">' + p.wins + '-' + p.losses + '</span>' +
         (onTable ? '' : '<span class="rest">轮休</span>') +
         '<span class="sc' + (p.score < 0 ? ' neg' : '') + '">' + (p.score > 0 ? '+' + p.score : p.score) + '</span>';
       board.appendChild(row);
@@ -688,9 +744,10 @@
     $('repRank').innerHTML = rank.map(function (p, i) {
       const crowned = i === 0 && m.round > 0 && !topTie;
       const tie = topTie && p.score === rank[0].score;
-      return '<div class="rank-row' + (crowned ? ' top' : '') + '">' +
+      return '<div class="rank-row' + (crowned ? ' top' : '') + (R.isVip(p.name) ? ' vip' : '') + '">' +
         '<span class="pos">' + (i + 1) + '</span>' +
-        '<span class="nm">' + (crowned ? '🏆 ' : '') + p.name + '</span>' +
+        '<span class="nm">' + (crowned ? '🏆 ' : '') + p.name +
+          (R.isVip(p.name) ? ' <span class="vip-tag">VIP</span>' : '') + '</span>' +
         '<span class="wl">' + p.wins + ' 胜 ' + p.losses + ' 负　最长 ' + p.best + ' 连胜' + (tie ? '　并列' : '') + '</span>' +
         '<span class="pts' + (p.score < 0 ? ' neg' : '') + '">' + (p.score > 0 ? '+' + p.score : p.score) + '</span></div>';
     }).join('');
@@ -755,9 +812,22 @@
       g.beginPath(); g.moveTo(56, y - (many ? 26 : 34)); g.lineTo(W - 56, y - (many ? 26 : 34)); g.stroke();
       g.fillStyle = '#6E8A7C'; g.font = '400 17px -apple-system, "PingFang SC", sans-serif';
       g.fillText(String(i + 1), 56, y + 8);
-      g.fillStyle = i === 0 && m.round > 0 && !topTie ? '#E8C46A' : '#F1EBDD';
+      const vip = R.isVip(p.name);
+      g.fillStyle = vip ? '#F0CE7E' : (i === 0 && m.round > 0 && !topTie ? '#E8C46A' : '#F1EBDD');
       g.font = '500 ' + nameSize + 'px -apple-system, "PingFang SC", sans-serif';
-      g.fillText((i === 0 && m.round > 0 && !topTie ? '🏆 ' : '') + p.name, 96, y + 8);
+      const label = (i === 0 && m.round > 0 && !topTie ? '🏆 ' : '') + p.name;
+      g.fillText(label, 96, y + 8);
+      if (vip) {
+        const nw = g.measureText(label).width;
+        const bx = 96 + nw + 10, by = y - (many ? 16 : 19), bw = 42, bh = 19;
+        g.fillStyle = 'rgba(232,196,106,.16)';
+        if (g.roundRect) { g.beginPath(); g.roundRect(bx, by, bw, bh, 9); g.fill(); }
+        else { g.fillRect(bx, by, bw, bh); }
+        g.fillStyle = '#F0CE7E';
+        g.font = '700 11px -apple-system, "PingFang SC", sans-serif';
+        g.fillText('VIP', bx + 12, by + 13.5);
+        g.font = '500 ' + nameSize + 'px -apple-system, "PingFang SC", sans-serif';
+      }
       g.fillStyle = '#6E8A7C'; g.font = '400 15px -apple-system, "PingFang SC", sans-serif';
       g.fillText(p.wins + ' 胜 ' + p.losses + ' 负 · 最长 ' + p.best + ' 连胜', 96, y + (many ? 26 : 34));
       g.fillStyle = p.score < 0 ? '#9DB5A8' : '#F1EBDD';

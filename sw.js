@@ -1,5 +1,5 @@
 // 离线可用：首次打开后缓存，之后断网也能记分
-const CACHE = 'billiard-v3';
+const CACHE = 'billiard-v4';
 const ASSETS = ['./', './index.html', './manifest.webmanifest', './icon-192.png', './icon-512.png'];
 
 self.addEventListener('install', function (e) {
