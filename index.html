@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
-<meta name="theme-color" content="#111113">
+<meta name="theme-color" content="#0F2A22">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="台球记分">
@@ -13,15 +13,15 @@
 <title>台球记分</title>
 <style>
   :root {
-    --bg: #111113;
-    --surface: #19191B;
-    --surface-2: #222225;
-    --line: #2E2E32;
-    --line-soft: #232326;
-    --text: #EEEFF1;
-    --muted: #AAAEB5;
-    --dim: #6C6E76;
-    --accent: #E9B44C;
+    --bg: #0F2A22;
+    --surface: #14352B;
+    --surface-2: #193F33;
+    --line: #1E4A3B;
+    --line-soft: #173E32;
+    --text: #F1EBDD;
+    --muted: #9DB5A8;
+    --dim: #6E8A7C;
+    --accent: #E8C46A;
     --r-btn: 10px;
     --r-panel: 14px;
     --gap: 12px;
@@ -51,8 +51,8 @@
     transition: background .15s ease, border-color .15s ease, transform .08s ease;
   }
   .btn:active { transform: scale(.985); background: var(--surface-2); }
-  .btn.primary { background: var(--text); border-color: var(--text); color: #101113; font-weight: 600; }
-  .btn.primary:active { background: #D8DAE0; }
+  .btn.primary { background: var(--text); border-color: var(--text); color: #0F2A22; font-weight: 600; }
+  .btn.primary:active { background: #E3DCC8; }
   .icon-btn {
     appearance: none; background: transparent; border: 1px solid var(--line); color: var(--muted);
     width: 40px; height: 40px; border-radius: var(--r-btn); display: inline-flex; align-items: center;
@@ -76,11 +76,11 @@
     padding: 18px 16px 16px; min-height: 248px; display: flex; flex-direction: column; justify-content: space-between;
     transition: background .12s ease, border-color .12s ease, transform .08s ease;
   }
-  .pick:active { transform: scale(.985); background: var(--surface-2); border-color: #3A3A40; }
+  .pick:active { transform: scale(.985); background: var(--surface-2); border-color: #2C6350; }
   .pick .pname { font-size: 17px; font-weight: 500; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
   .pick .pscore { font-size: 56px; font-weight: 600; letter-spacing: -.04em; line-height: 1; font-variant-numeric: tabular-nums; }
   .pick .pmeta { font-size: 12px; color: var(--dim); }
-  .streak { font-size: 11px; color: var(--accent); border: 1px solid rgba(233,180,76,.28); background: rgba(233,180,76,.07);
+  .streak { font-size: 11px; color: var(--accent); border: 1px solid rgba(232,196,106,.30); background: rgba(232,196,106,.09);
             border-radius: 999px; padding: 1px 8px; font-weight: 400; }
   .pick.flash { animation: pickflash .7s ease; }
   @keyframes pickflash {
@@ -129,7 +129,7 @@
     border: 1px solid var(--line); background: var(--surface); color: var(--muted); border-radius: var(--r-btn);
     cursor: pointer; transition: all .12s ease;
   }
-  .seg button.on { background: var(--surface-2); color: var(--text); border-color: #3A3A40; }
+  .seg button.on { background: var(--surface-2); color: var(--text); border-color: #2C6350; }
   .names { display: flex; flex-direction: column; gap: 10px; margin-bottom: 22px; }
   .name-row { display: flex; align-items: center; gap: 12px; }
   .name-row span { width: 16px; color: var(--dim); font-size: 12px; font-variant-numeric: tabular-nums; }
@@ -137,9 +137,9 @@
     flex: 1; font: inherit; font-size: 15px; padding: 14px; color: var(--text);
     background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-btn); outline: none;
   }
-  .name-row input:focus { border-color: #3A3A40; }
-  .warn { margin: 0 0 12px; padding: 12px 14px; border: 1px solid rgba(233,180,76,.28); background: rgba(233,180,76,.06);
-           border-radius: var(--r-btn); color: #D9C08C; font-size: 12.5px; line-height: 1.55; }
+  .name-row input:focus { border-color: #2C6350; }
+  .warn { margin: 0 0 12px; padding: 12px 14px; border: 1px solid rgba(232,196,106,.30); background: rgba(232,196,106,.07);
+           border-radius: var(--r-btn); color: #DCC48F; font-size: 12.5px; line-height: 1.55; }
   .resume { margin-bottom: 12px; padding: 14px 16px; border: 1px solid var(--line); border-radius: var(--r-panel);
     background: var(--surface); display: flex; align-items: center; gap: 12px; cursor: pointer; }
   .resume .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--accent); flex: none; }
@@ -186,7 +186,7 @@
 
   /* 浮层 */
   .toast { position: fixed; left: 50%; bottom: calc(env(safe-area-inset-bottom) + 34px); transform: translate(-50%, 10px);
-    background: #22262C; color: var(--text); border: 1px solid var(--line); padding: 10px 16px; border-radius: 999px;
+    background: #193F33; color: var(--text); border: 1px solid var(--line); padding: 10px 16px; border-radius: 999px;
     font-size: 13px; opacity: 0; pointer-events: none; transition: opacity .16s ease, transform .16s ease; z-index: 40; }
   .toast.on { opacity: 1; transform: translate(-50%, 0); }
   .sheet { position: fixed; inset: 0; background: rgba(0,0,0,.55); display: none; align-items: flex-end; justify-content: center; z-index: 50; }
@@ -198,7 +198,7 @@
   .sheet-body p { margin: 0 0 16px; color: var(--muted); font-size: 13px; }
   .sheet-body .opt { display: block; width: 100%; text-align: left; margin-bottom: 8px; }
   .sheet-body .cancel { margin-top: 10px; width: 100%; color: var(--muted); }
-  .imgwrap { position: fixed; inset: 0; background: #0B0B0C; display: none; flex-direction: column; z-index: 60;
+  .imgwrap { position: fixed; inset: 0; background: #0A211B; display: none; flex-direction: column; z-index: 60;
     padding: calc(env(safe-area-inset-top) + 16px) 16px calc(env(safe-area-inset-bottom) + 16px); align-items: center; }
   .imgwrap.on { display: flex; }
   .imgwrap img { max-width: 100%; max-height: 78dvh; border-radius: 10px; }
@@ -675,44 +675,44 @@
     const c = document.createElement('canvas');
     c.width = W * dpr; c.height = H * dpr;
     const g = c.getContext('2d'); g.scale(dpr, dpr);
-    g.fillStyle = '#111113'; g.fillRect(0, 0, W, H);
-    g.fillStyle = '#E9B44C'; g.fillRect(56, 64, 28, 3);
-    g.fillStyle = '#AAAEB5'; g.font = '600 15px -apple-system, "PingFang SC", sans-serif';
+    g.fillStyle = '#0F2A22'; g.fillRect(0, 0, W, H);
+    g.fillStyle = '#E8C46A'; g.fillRect(56, 64, 28, 3);
+    g.fillStyle = '#9DB5A8'; g.font = '600 15px -apple-system, "PingFang SC", sans-serif';
     g.fillText('台球记分 · 对局报告', 56, 104);
-    g.fillStyle = '#EEEFF1'; g.font = '600 44px -apple-system, "PingFang SC", sans-serif';
+    g.fillStyle = '#F1EBDD'; g.font = '600 44px -apple-system, "PingFang SC", sans-serif';
     g.fillText(m.round + ' 局', 56, 176);
-    g.fillStyle = '#AAAEB5'; g.font = '400 17px -apple-system, "PingFang SC", sans-serif';
+    g.fillStyle = '#9DB5A8'; g.font = '400 17px -apple-system, "PingFang SC", sans-serif';
     g.fillText(R.dateText(m.startedAt) + '　·　' + R.durationText(rec.endedAt - m.startedAt), 56, 210);
 
     let y = 276;
     const rank = R.ranking(m.players);
     const topTie = rank.length > 1 && rank[1].score === rank[0].score;
     rank.forEach(function (p, i) {
-      g.strokeStyle = '#232326'; g.lineWidth = 1;
+      g.strokeStyle = '#173E32'; g.lineWidth = 1;
       g.beginPath(); g.moveTo(56, y - 34); g.lineTo(W - 56, y - 34); g.stroke();
-      g.fillStyle = '#6C6E76'; g.font = '400 17px -apple-system, "PingFang SC", sans-serif';
+      g.fillStyle = '#6E8A7C'; g.font = '400 17px -apple-system, "PingFang SC", sans-serif';
       g.fillText(String(i + 1), 56, y + 8);
-      g.fillStyle = i === 0 && m.round > 0 && !topTie ? '#E9B44C' : '#EEEFF1';
+      g.fillStyle = i === 0 && m.round > 0 && !topTie ? '#E8C46A' : '#F1EBDD';
       g.font = '500 26px -apple-system, "PingFang SC", sans-serif';
       g.fillText((i === 0 && m.round > 0 && !topTie ? '🏆 ' : '') + p.name, 96, y + 8);
-      g.fillStyle = '#6C6E76'; g.font = '400 15px -apple-system, "PingFang SC", sans-serif';
+      g.fillStyle = '#6E8A7C'; g.font = '400 15px -apple-system, "PingFang SC", sans-serif';
       g.fillText(p.wins + ' 胜 ' + p.losses + ' 负 · 最长 ' + p.best + ' 连胜', 96, y + 34);
-      g.fillStyle = p.score < 0 ? '#AAAEB5' : '#EEEFF1';
+      g.fillStyle = p.score < 0 ? '#9DB5A8' : '#F1EBDD';
       g.font = '600 34px -apple-system, "PingFang SC", sans-serif';
       g.textAlign = 'right'; g.fillText(p.score > 0 ? '+' + p.score : String(p.score), W - 56, y + 14); g.textAlign = 'left';
       y += 96;
     });
 
     y += 10;
-    g.fillStyle = '#6C6E76'; g.font = '600 13px -apple-system, "PingFang SC", sans-serif';
+    g.fillStyle = '#6E8A7C'; g.font = '600 13px -apple-system, "PingFang SC", sans-serif';
     g.fillText('逐局记录', 56, y); y += 30;
     g.font = '400 16px -apple-system, "PingFang SC", sans-serif';
     m.log.forEach(function (e) {
       if (y > H - 70) return;
-      g.fillStyle = '#6C6E76'; g.fillText(String(e.round), 56, y);
-      g.fillStyle = '#C9CCD1'; g.fillText(m.players[e.winner].name + ' 胜 ' + m.players[e.loser].name, 96, y);
+      g.fillStyle = '#6E8A7C'; g.fillText(String(e.round), 56, y);
+      g.fillStyle = '#D6E0D6'; g.fillText(m.players[e.winner].name + ' 胜 ' + m.players[e.loser].name, 96, y);
       if (m.n === 3) {
-        g.fillStyle = '#454B54'; g.textAlign = 'right';
+        g.fillStyle = '#3C5C4E'; g.textAlign = 'right';
         g.fillText(m.players[e.bench].name + ' 轮休', W - 56, y); g.textAlign = 'left';
       }
       y += 30;
