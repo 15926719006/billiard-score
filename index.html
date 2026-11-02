@@ -1,0 +1,763 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<meta name="theme-color" content="#111113">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="台球记分">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icon-192.png">
+<link rel="icon" href="icon-192.png">
+<title>台球记分</title>
+<style>
+  :root {
+    --bg: #111113;
+    --surface: #19191B;
+    --surface-2: #222225;
+    --line: #2E2E32;
+    --line-soft: #232326;
+    --text: #EEEFF1;
+    --muted: #AAAEB5;
+    --dim: #6C6E76;
+    --accent: #E9B44C;
+    --r-btn: 10px;
+    --r-panel: 14px;
+    --gap: 12px;
+  }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 8px; }
+  @media (prefers-reduced-motion: reduce) { * { animation-duration: .001ms !important; transition-duration: .001ms !important; } }
+  html, body { margin: 0; height: 100%; }
+  body {
+    background: var(--bg); color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Hiragino Sans GB", "PingFang SC", "Microsoft YaHei", sans-serif;
+    -webkit-font-smoothing: antialiased; font-size: 15px; line-height: 1.5;
+    display: flex; justify-content: center;
+  }
+  .app { width: 100%; max-width: 460px; min-height: 100dvh; display: flex; flex-direction: column;
+         padding: calc(env(safe-area-inset-top) + 10px) 20px calc(env(safe-area-inset-bottom) + 16px); }
+  .screen { display: none; flex-direction: column; flex: 1; min-height: 0; }
+  .screen.active { display: flex; }
+
+  /* 类型与基础件 */
+  .kicker { font-size: 11px; letter-spacing: .18em; text-transform: uppercase; color: var(--dim); }
+  .h1 { font-size: 26px; font-weight: 600; letter-spacing: -.02em; margin: 8px 0 6px; }
+  .sub { color: var(--muted); font-size: 13px; margin: 0; }
+  .btn {
+    appearance: none; border: 1px solid var(--line); background: transparent; color: var(--text);
+    font: inherit; font-size: 15px; border-radius: var(--r-btn); padding: 14px 18px; cursor: pointer;
+    transition: background .15s ease, border-color .15s ease, transform .08s ease;
+  }
+  .btn:active { transform: scale(.985); background: var(--surface-2); }
+  .btn.primary { background: var(--text); border-color: var(--text); color: #101113; font-weight: 600; }
+  .btn.primary:active { background: #D8DAE0; }
+  .icon-btn {
+    appearance: none; background: transparent; border: 1px solid var(--line); color: var(--muted);
+    width: 40px; height: 40px; border-radius: var(--r-btn); display: inline-flex; align-items: center;
+    justify-content: center; cursor: pointer;
+  }
+  .icon-btn:active { border-color: var(--dim); color: var(--text); }
+
+  /* 状态条 */
+  .topbar { display: flex; align-items: center; gap: 12px; padding: 2px 0 18px; }
+  .topbar .status { font-size: 13px; color: var(--muted); }
+  .topbar .status b { color: var(--text); font-weight: 600; font-variant-numeric: tabular-nums; }
+  .topbar .spacer { flex: 1; }
+
+  /* 对局：提问 */
+  .mid { flex: 1; display: flex; flex-direction: column; justify-content: flex-start; min-height: 0; padding-top: 18px; }
+  .ask { font-size: 22px; font-weight: 600; letter-spacing: -.02em; margin: 0 0 14px; }
+  .picks { display: grid; grid-template-columns: 1fr 1fr; gap: var(--gap); margin-bottom: var(--gap); }
+  .pick {
+    appearance: none; font: inherit; text-align: left; cursor: pointer; color: var(--text);
+    background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-panel);
+    padding: 18px 16px 16px; min-height: 248px; display: flex; flex-direction: column; justify-content: space-between;
+    transition: background .12s ease, border-color .12s ease, transform .08s ease;
+  }
+  .pick:active { transform: scale(.985); background: var(--surface-2); border-color: #3A3A40; }
+  .pick .pname { font-size: 17px; font-weight: 500; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+  .pick .pscore { font-size: 56px; font-weight: 600; letter-spacing: -.04em; line-height: 1; font-variant-numeric: tabular-nums; }
+  .pick .pmeta { font-size: 12px; color: var(--dim); }
+  .streak { font-size: 11px; color: var(--accent); border: 1px solid rgba(233,180,76,.28); background: rgba(233,180,76,.07);
+            border-radius: 999px; padding: 1px 8px; font-weight: 400; }
+  .pick.flash { animation: pickflash .7s ease; }
+  @keyframes pickflash {
+    0% { border-color: var(--accent); }
+    55% { border-color: var(--accent); }
+    100% { border-color: var(--line); }
+  }
+
+  /* 上局回显 + 撤销 */
+  .last { margin-top: 0; display: flex; align-items: center; gap: 10px; min-height: 44px;
+          padding: 0 2px; font-size: 13px; color: var(--dim); }
+  .last .txt { color: var(--muted); }
+  .last .txt b { color: var(--text); font-weight: 500; }
+  .last .undo {
+    margin-left: auto; appearance: none; background: none; border: 1px solid var(--line); color: var(--muted);
+    font: inherit; font-size: 12px; border-radius: 999px; padding: 6px 12px; cursor: pointer;
+  }
+  .last .undo:active { border-color: var(--accent); color: var(--accent); }
+  .last .undo:disabled { opacity: .3; }
+
+  /* 轮休 */
+  .bench { margin-top: 6px; display: flex; align-items: center; gap: 10px; width: 100%;
+    appearance: none; font: inherit; font-size: 13px; text-align: left; cursor: pointer;
+    background: none; border: 0; border-top: 1px solid var(--line-soft); color: var(--dim); padding: 14px 2px; }
+  .bench b { color: var(--muted); font-weight: 500; }
+  .bench .tag { margin-left: auto; }
+
+  .stats { margin-top: 4px; padding-top: 12px; border-top: 1px solid var(--line-soft); display: flex; gap: 28px; }
+  .stats .k { display: block; font-size: 11px; color: var(--dim); letter-spacing: .08em; }
+  .stats .v { font-size: 14px; color: var(--text); font-variant-numeric: tabular-nums; }
+
+  /* 全场比分 */
+  .board { margin-top: auto; padding-top: 12px; }
+  .board-title { font-size: 11px; color: var(--dim); letter-spacing: .12em; text-transform: uppercase; padding-bottom: 4px; }
+  .row { display: flex; align-items: baseline; gap: 10px; padding: 8px 2px; font-size: 13px; }
+  .row .nm { color: var(--text); width: 56px; flex: none; }
+  .row .wl { color: var(--dim); font-size: 12px; font-variant-numeric: tabular-nums; }
+  .row .sc { margin-left: auto; font-variant-numeric: tabular-nums; font-weight: 600; color: var(--text); }
+  .row .sc.neg { color: var(--muted); }
+  .row .rest { font-size: 11px; color: var(--dim); }
+
+  /* 开始页 */
+  .seg { display: flex; gap: 8px; margin: 26px 0 18px; }
+  .seg button {
+    flex: 1; appearance: none; font: inherit; font-size: 14px; padding: 13px 0;
+    border: 1px solid var(--line); background: var(--surface); color: var(--muted); border-radius: var(--r-btn);
+    cursor: pointer; transition: all .12s ease;
+  }
+  .seg button.on { background: var(--surface-2); color: var(--text); border-color: #3A3A40; }
+  .names { display: flex; flex-direction: column; gap: 10px; margin-bottom: 22px; }
+  .name-row { display: flex; align-items: center; gap: 12px; }
+  .name-row span { width: 16px; color: var(--dim); font-size: 12px; font-variant-numeric: tabular-nums; }
+  .name-row input {
+    flex: 1; font: inherit; font-size: 15px; padding: 14px; color: var(--text);
+    background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-btn); outline: none;
+  }
+  .name-row input:focus { border-color: #3A3A40; }
+  .warn { margin: 0 0 12px; padding: 12px 14px; border: 1px solid rgba(233,180,76,.28); background: rgba(233,180,76,.06);
+           border-radius: var(--r-btn); color: #D9C08C; font-size: 12.5px; line-height: 1.55; }
+  .resume { margin-bottom: 12px; padding: 14px 16px; border: 1px solid var(--line); border-radius: var(--r-panel);
+    background: var(--surface); display: flex; align-items: center; gap: 12px; cursor: pointer; }
+  .resume .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--accent); flex: none; }
+  .resume b { font-weight: 600; }
+  .resume small { display: block; color: var(--muted); font-size: 12px; }
+  .link { color: var(--muted); font-size: 13px; background: none; border: 0; padding: 0; cursor: pointer; font-family: inherit; }
+  .foot { margin-top: auto; padding-top: 24px; display: flex; justify-content: space-between; align-items: center; }
+
+  /* 报告 */
+  .report-head { padding: 2px 0 16px; }
+  .report-head .big { font-size: 28px; font-weight: 600; letter-spacing: -.02em; margin: 8px 0 6px; }
+  .report-meta { color: var(--muted); font-size: 13px; }
+  .rank { margin: 2px 0 16px; }
+  .rank-row { display: flex; align-items: baseline; gap: 10px; padding: 14px 0; border-top: 1px solid var(--line-soft); }
+  .rank-row:last-child { border-bottom: 1px solid var(--line-soft); }
+  .rank-row .pos { width: 20px; color: var(--dim); font-size: 13px; font-variant-numeric: tabular-nums; }
+  .rank-row .nm { font-size: 16px; font-weight: 500; }
+  .rank-row .wl { color: var(--dim); font-size: 12px; margin-left: 8px; }
+  .rank-row .pts { margin-left: auto; font-size: 22px; font-weight: 600; font-variant-numeric: tabular-nums; }
+  .rank-row .pts.neg { color: var(--muted); }
+  .rank-row.top .nm { color: var(--accent); }
+  .log { margin: 4px 0 14px; }
+  .log-row { display: flex; gap: 12px; padding: 7px 0; font-size: 13px; color: var(--muted); border-bottom: 1px solid var(--line-soft); }
+  .log-row .n { width: 24px; color: var(--dim); font-variant-numeric: tabular-nums; }
+  .log-row .w { color: var(--text); }
+  .log-row .rest { color: var(--dim); margin-left: auto; font-size: 12px; }
+  .section-label { font-size: 11px; color: var(--dim); letter-spacing: .12em; text-transform: uppercase; margin: 14px 0 4px; }
+  .note { color: var(--dim); font-size: 11.5px; margin-top: auto; padding-top: 16px; }
+  .actions { display: flex; gap: 10px; padding-top: 12px; }
+  .actions .btn { flex: 1; }
+  .again { width: 100%; margin-top: 10px; }
+
+  /* 历史 */
+  .hlist { margin-top: 6px; display: flex; flex-direction: column; }
+  .hitem { display: flex; align-items: center; gap: 14px; padding: 17px 2px; width: 100%;
+    border: 0; border-bottom: 1px solid var(--line-soft); border-radius: 0; background: none;
+    cursor: pointer; font-family: inherit; text-align: left; color: inherit; }
+  .hitem:first-child { border-top: 1px solid var(--line-soft); }
+  .hitem:active { background: rgba(255,255,255,.03); }
+  .hitem .d { font-size: 13px; color: var(--text); }
+  .hitem .m { font-size: 12px; color: var(--muted); margin-top: 2px; }
+  .hitem .top { margin-left: auto; font-size: 13px; color: var(--muted); }
+  .empty { color: var(--dim); font-size: 13px; padding: 28px 0; }
+
+  /* 浮层 */
+  .toast { position: fixed; left: 50%; bottom: calc(env(safe-area-inset-bottom) + 34px); transform: translate(-50%, 10px);
+    background: #22262C; color: var(--text); border: 1px solid var(--line); padding: 10px 16px; border-radius: 999px;
+    font-size: 13px; opacity: 0; pointer-events: none; transition: opacity .16s ease, transform .16s ease; z-index: 40; }
+  .toast.on { opacity: 1; transform: translate(-50%, 0); }
+  .sheet { position: fixed; inset: 0; background: rgba(0,0,0,.55); display: none; align-items: flex-end; justify-content: center; z-index: 50; }
+  .sheet.on { display: flex; }
+  .sheet-body { width: 100%; max-width: 460px; background: var(--surface); border-top: 1px solid var(--line);
+    border-radius: 18px 18px 0 0; padding: 20px 20px calc(env(safe-area-inset-bottom) + 18px); animation: rise .18s ease; }
+  @keyframes rise { from { transform: translateY(14px); opacity: .65; } to { transform: none; opacity: 1; } }
+  .sheet-body h3 { margin: 0 0 4px; font-size: 16px; font-weight: 600; }
+  .sheet-body p { margin: 0 0 16px; color: var(--muted); font-size: 13px; }
+  .sheet-body .opt { display: block; width: 100%; text-align: left; margin-bottom: 8px; }
+  .sheet-body .cancel { margin-top: 10px; width: 100%; color: var(--muted); }
+  .imgwrap { position: fixed; inset: 0; background: #0B0B0C; display: none; flex-direction: column; z-index: 60;
+    padding: calc(env(safe-area-inset-top) + 16px) 16px calc(env(safe-area-inset-bottom) + 16px); align-items: center; }
+  .imgwrap.on { display: flex; }
+  .imgwrap img { max-width: 100%; max-height: 78dvh; border-radius: 10px; }
+  .imgwrap .hint { color: var(--muted); font-size: 13px; margin: 14px 0 0; }
+  .imgwrap .close { margin-top: 12px; }
+</style>
+</head>
+<body>
+<div class="app">
+
+  <!-- 开始 -->
+  <section class="screen active" id="setup">
+    <div class="kicker">Billiard Score</div>
+    <h1 class="h1">台球记分</h1>
+    <p class="sub">一台手机记一场。打完一局，点一下谁赢了。</p>
+
+    <div class="seg" id="seg">
+      <button data-n="2">2 人</button>
+      <button data-n="3" class="on">3 人</button>
+    </div>
+    <div class="names" id="names"></div>
+    <div id="resumeBox"></div>
+    <div class="warn" id="storageWarn" style="display:none">这个浏览器不允许本地存储，这一场打完不会留在历史里。</div>
+    <button class="btn primary" id="startBtn" style="width:100%">开始对局</button>
+
+    <div class="foot">
+      <button class="link" id="historyBtn">历史对局</button>
+      <span class="kicker" style="letter-spacing:.12em">离线 · 存本机</span>
+    </div>
+  </section>
+
+  <!-- 对局 -->
+  <section class="screen" id="match">
+    <div class="topbar">
+      <div class="status">第 <b id="roundNo">1</b> 局 · 场上 <span id="vsLine"></span></div>
+      <div class="spacer"></div>
+      <button class="icon-btn" id="endBtn" aria-label="结束本场">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="3.5" width="9" height="9" rx="1.6"/></svg>
+      </button>
+    </div>
+
+    <div class="mid">
+      <div class="ask" id="ask">这局谁赢了？</div>
+      <div class="picks" id="picks"></div>
+      <div class="last" id="lastBar"></div>
+      <button class="bench" id="benchRow" style="display:none"></button>
+    </div>
+    <div class="stats" id="stats" style="display:none"></div>
+
+    <div class="board">
+      <div class="board-title">全场比分</div>
+      <div id="board"></div>
+    </div>
+  </section>
+
+  <!-- 报告 -->
+  <section class="screen" id="report">
+    <div class="report-head">
+      <div class="kicker">Match Report</div>
+      <div class="big" id="repTitle">对局报告</div>
+      <div class="report-meta" id="repMeta"></div>
+    </div>
+    <div class="rank" id="repRank"></div>
+    <div class="section-label">逐局记录</div>
+    <div class="log" id="repLog"></div>
+    <div class="note">记录只存在这台手机里；换设备或清浏览器缓存会丢。</div>
+    <div class="actions">
+      <button class="btn" id="copyBtn">复制文字</button>
+      <button class="btn" id="imgBtn">保存图片</button>
+    </div>
+    <button class="btn primary again" id="againBtn">再来一场</button>
+  </section>
+
+  <!-- 历史 -->
+  <section class="screen" id="history">
+    <div class="topbar">
+      <div class="status">历史对局</div>
+      <div class="spacer"></div>
+      <button class="icon-btn" id="backBtn" aria-label="返回">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M13 8H3.5"/><path d="M7 4.5 3.5 8 7 11.5"/></svg>
+      </button>
+    </div>
+    <div class="hlist" id="hlist"></div>
+  </section>
+
+</div>
+
+<div class="toast" id="toast"></div>
+<div class="sheet" id="sheet"><div class="sheet-body" id="sheetBody"></div></div>
+<div class="imgwrap" id="imgwrap">
+  <img id="repImg" alt="对局报告">
+  <p class="hint">长按图片保存到相册</p>
+  <a class="btn close" id="downloadLink" download="台球记分.png" href="#">下载图片</a>
+</div>
+
+<script id="rules">
+(function (global) {
+  const NAMES = ['小李', '小王', '小张'];
+
+  function createMatch(names, startedAt) {
+    const players = names.map(function (name, i) {
+      return { id: i, name: name, score: 0, wins: 0, losses: 0, streak: 0, best: 0 };
+    });
+    const n = players.length;
+    return { startedAt: startedAt, n: n, players: players, onTable: [0, 1], bench: n === 3 ? 2 : null, round: 0, log: [] };
+  }
+
+  function clone(m) { return JSON.parse(JSON.stringify(m)); }
+
+  function recordWin(m, winnerId, ts) {
+    const s = clone(m);
+    if (s.onTable.indexOf(winnerId) === -1) throw new Error('winner not on table');
+    const loserId = s.onTable.filter(function (id) { return id !== winnerId; })[0];
+    const w = s.players[winnerId];
+    const l = s.players[loserId];
+    w.score += 1; w.wins += 1;
+    w.streak += 1; if (w.streak > w.best) w.best = w.streak;
+    l.score -= 1; l.losses += 1; l.streak = 0;
+    s.round += 1;
+    s.log.push({ round: s.round, winner: winnerId, loser: loserId, bench: s.bench, ts: ts });
+    if (s.n === 3) {
+      const next = s.onTable.map(function (id) { return id === loserId ? s.bench : id; });
+      s.onTable = next;
+      s.bench = loserId;
+    }
+    return s;
+  }
+
+  function swapPlayers(m, pair) {
+    const s = clone(m);
+    if (s.n === 2) return s;
+    const ids = s.players.map(function (p) { return p.id; });
+    const bench = ids.filter(function (id) { return pair.indexOf(id) === -1; })[0];
+    if (bench === undefined) return s;
+    s.onTable = pair.slice();
+    s.bench = bench;
+    return s;
+  }
+
+  function ranking(players) {
+    return players.slice().sort(function (a, b) {
+      if (b.score !== a.score) return b.score - a.score;
+      if (b.wins !== a.wins) return b.wins - a.wins;
+      return a.name.localeCompare(b.name);
+    });
+  }
+
+  function durationText(ms) {
+    const min = Math.max(1, Math.round(ms / 60000));
+    return min < 60 ? min + ' 分钟' : Math.floor(min / 60) + ' 小时 ' + (min % 60) + ' 分';
+  }
+
+  function dateText(ts) {
+    const d = new Date(ts);
+    const p = function (n) { return n < 10 ? '0' + n : '' + n; };
+    return d.getFullYear() + '-' + p(d.getMonth() + 1) + '-' + p(d.getDate()) + ' ' + p(d.getHours()) + ':' + p(d.getMinutes());
+  }
+
+  function textReport(m, endedAt) {
+    const r = ranking(m.players);
+    const topTie = r.length > 1 && r[1].score === r[0].score;
+    const lines = ['台球记分 · ' + dateText(m.startedAt), '共 ' + m.round + ' 局 · ' + durationText(endedAt - m.startedAt), ''];
+    r.forEach(function (p, i) {
+      const medal = i === 0 && !topTie ? '🏆 ' : '';
+      lines.push((i + 1) + '. ' + medal + p.name + '　' + (p.score > 0 ? '+' + p.score : p.score) +
+        '（' + p.wins + '胜' + p.losses + '负，最长' + p.best + '连胜）');
+    });
+    lines.push('');
+    m.log.forEach(function (e) {
+      const rest = m.n === 3 ? '（' + m.players[e.bench].name + '轮休）' : '';
+      lines.push('第' + e.round + '局 ' + m.players[e.winner].name + ' 胜 ' + m.players[e.loser].name + rest);
+    });
+    return lines.join('\n');
+  }
+
+  const api = { NAMES: NAMES, createMatch: createMatch, recordWin: recordWin, swapPlayers: swapPlayers, ranking: ranking,
+    durationText: durationText, dateText: dateText, textReport: textReport };
+  if (typeof module !== 'undefined' && module.exports) module.exports = api;
+  if (global) global.Rules = api;
+})(typeof window !== 'undefined' ? window : null);
+</script>
+
+<script>
+(function () {
+  const R = window.Rules;
+  const KEY_CUR = 'billiard.v3.current';
+  const KEY_HIS = 'billiard.v3.history';
+  const $ = function (id) { return document.getElementById(id); };
+
+  let setupN = 3;
+  let setupNames = R.NAMES.slice();
+  let match = null;
+  let undoStack = [];
+  let undoLabels = [];
+  let lastTap = 0;
+  let lastReport = null;
+
+  // 有些浏览器（Safari 的 file://、隐私模式）会直接禁用 localStorage，
+  // 这里全部兜住：存不了也不影响记分，只是生成不了历史。
+  let storageOK = true;
+  try {
+    localStorage.setItem('__bd_probe__', '1');
+    localStorage.removeItem('__bd_probe__');
+  } catch (e) { storageOK = false; }
+
+  function save() {
+    if (!storageOK) return;
+    try { localStorage.setItem(KEY_CUR, JSON.stringify(match)); } catch (e) { storageOK = false; }
+  }
+  function loadCurrent() {
+    if (!storageOK) return null;
+    try { return JSON.parse(localStorage.getItem(KEY_CUR) || 'null'); } catch (e) { return null; }
+  }
+  function clearCurrent() {
+    if (!storageOK) return;
+    try { localStorage.removeItem(KEY_CUR); } catch (e) { storageOK = false; }
+  }
+  function getHistory() {
+    if (!storageOK) return [];
+    try { return JSON.parse(localStorage.getItem(KEY_HIS) || '[]'); } catch (e) { return []; }
+  }
+  function pushHistory(rec) {
+    if (!storageOK) return;
+    try {
+      const h = getHistory(); h.unshift(rec);
+      localStorage.setItem(KEY_HIS, JSON.stringify(h.slice(0, 50)));
+    } catch (e) { storageOK = false; }
+  }
+
+  // 兜底：任何没被处理的异常都露出来，而不是静默失败
+  window.addEventListener('error', function (e) {
+    toast('出错了：' + (e.message || '未知错误'));
+  });
+
+  function show(id) {
+    document.querySelectorAll('.screen').forEach(function (s) { s.classList.remove('active'); });
+    $(id).classList.add('active');
+  }
+  let toastTimer = null;
+  function toast(text) {
+    const t = $('toast'); t.textContent = text; t.classList.add('on');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(function () { t.classList.remove('on'); }, 1400);
+  }
+  function buzz(ms) { if (navigator.vibrate) navigator.vibrate(ms); }
+  function openSheet(html) { $('sheetBody').innerHTML = html; $('sheet').classList.add('on'); }
+  function closeSheet() { $('sheet').classList.remove('on'); }
+  $('sheet').addEventListener('click', function (e) { if (e.target === $('sheet')) closeSheet(); });
+
+  /* ---------------- 开始 ---------------- */
+  function renderSetup() {
+    document.querySelectorAll('#seg button').forEach(function (b) {
+      b.classList.toggle('on', Number(b.dataset.n) === setupN);
+    });
+    const box = $('names'); box.innerHTML = '';
+    for (let i = 0; i < setupN; i++) {
+      const row = document.createElement('div');
+      row.className = 'name-row';
+      row.innerHTML = '<span>' + (i + 1) + '</span><input maxlength="8" value="' + (setupNames[i] || R.NAMES[i]) + '">';
+      row.querySelector('input').addEventListener('input', function (e) { setupNames[i] = e.target.value; });
+      box.appendChild(row);
+    }
+    const cur = loadCurrent();
+    const rb = $('resumeBox'); rb.innerHTML = '';
+    if (cur && cur.players && cur.players.length) {
+      const el = document.createElement('div');
+      el.className = 'resume';
+      el.innerHTML = '<span class="dot"></span><div><b>继续上一场</b><small>第 ' + (cur.round + 1) + ' 局 · ' +
+        cur.players.map(function (p) { return p.name + ' ' + p.score; }).join(' / ') + '</small></div>';
+      el.addEventListener('click', function () { match = cur; undoStack = []; undoLabels = []; renderMatch(); show('match'); });
+      rb.appendChild(el);
+    }
+  }
+  document.querySelectorAll('#seg button').forEach(function (b) {
+    b.addEventListener('click', function () { setupN = Number(b.dataset.n); renderSetup(); });
+  });
+  $('startBtn').addEventListener('click', function () {
+    const names = [];
+    for (let i = 0; i < setupN; i++) names.push((setupNames[i] || '').trim() || R.NAMES[i]);
+    if (new Set(names).size !== names.length) { toast('名字重复了'); return; }
+    match = R.createMatch(names, Date.now());
+    undoStack = []; undoLabels = []; lastTap = 0;
+    save(); renderMatch(); show('match');
+  });
+  $('historyBtn').addEventListener('click', function () { renderHistory(); show('history'); });
+  $('backBtn').addEventListener('click', function () { renderSetup(); show('setup'); });
+
+  /* ---------------- 对局 ---------------- */
+  function renderMatch() {
+    $('roundNo').textContent = match.round + 1;
+    $('vsLine').textContent = match.onTable.map(function (id) { return match.players[id].name; }).join(' vs ');
+
+    const picks = $('picks'); picks.innerHTML = '';
+    match.onTable.forEach(function (id) {
+      const p = match.players[id];
+      const b = document.createElement('button');
+      b.className = 'pick'; b.dataset.pid = id;
+      const streak = p.streak >= 2 ? '<span class="streak">' + p.streak + ' 连胜</span>' : '';
+      b.innerHTML = '<div class="pname">' + p.name + streak + '</div>' +
+        '<div class="pscore">' + (p.score > 0 ? '+' + p.score : p.score) + '</div>' +
+        '<div class="pmeta">' + p.wins + ' 胜 ' + p.losses + ' 负</div>';
+      b.addEventListener('click', function () { win(id, b); });
+      picks.appendChild(b);
+    });
+
+    renderLast();
+    renderBench();
+    renderStats();
+    renderBoard();
+  }
+
+  function renderLast() {
+    const bar = $('lastBar');
+    const e = match.log[match.log.length - 1];
+    if (!e) {
+      bar.innerHTML = '<span class="txt">打完一局，点上面两个名字</span>';
+      return;
+    }
+    const rest = match.n === 3 ? '　·　' + match.players[e.bench].name + ' 轮休' : '';
+    bar.innerHTML = '<span class="txt">上局：<b>' + match.players[e.winner].name + '</b> 胜 <b>' +
+      match.players[e.loser].name + '</b>' + rest + '</span>' +
+      '<button class="undo" id="undoBtn"' + (undoStack.length ? '' : ' disabled') + '>撤销</button>';
+    $('undoBtn').addEventListener('click', undo);
+  }
+
+  function renderBench() {
+    const row = $('benchRow');
+    if (match.n !== 3) { row.style.display = 'none'; return; }
+    row.style.display = 'flex';
+    row.innerHTML = '<span>轮休　<b>' + match.players[match.bench].name + '</b></span><span class="tag">换人</span>';
+    row.onclick = chooseBench;
+  }
+
+  function renderStats() {
+    const box = $('stats');
+    if (!match.log.length) { box.style.display = 'none'; return; }
+    box.style.display = 'flex';
+    const elapsed = R.durationText(Date.now() - match.startedAt);
+    const top = R.ranking(match.players)[0];
+    const tie = match.players.filter(function (p) { return p.score === top.score; }).length > 1;
+    box.innerHTML =
+      '<div><span class="k">本场</span><span class="v">' + match.round + ' 局 · ' + elapsed + '</span></div>' +
+      '<div><span class="k">' + (tie ? '并列' : '领先') + '</span><span class="v">' + top.name + ' ' +
+      (top.score > 0 ? '+' + top.score : top.score) + '</span></div>';
+  }
+
+  function renderBoard() {
+    const board = $('board'); board.innerHTML = '';
+    match.players.forEach(function (p) {
+      const onTable = match.onTable.indexOf(p.id) !== -1;
+      const row = document.createElement('div');
+      row.className = 'row';
+      row.innerHTML = '<span class="nm">' + p.name + '</span><span class="wl">' + p.wins + '-' + p.losses + '</span>' +
+        (onTable ? '' : '<span class="rest">轮休</span>') +
+        '<span class="sc' + (p.score < 0 ? ' neg' : '') + '">' + (p.score > 0 ? '+' + p.score : p.score) + '</span>';
+      board.appendChild(row);
+    });
+  }
+
+  function win(winnerId, btn) {
+    const now = Date.now();
+    if (now - lastTap < 350) return;
+    lastTap = now;
+    const before = match;
+    undoStack.push(JSON.stringify(match));
+    undoLabels.push('记分');
+    match = R.recordWin(match, winnerId, now);
+    save();
+    const loserId = before.onTable.filter(function (id) { return id !== winnerId; })[0];
+    buzz(12);
+    toast(match.players[winnerId].name + ' +1　·　' + match.players[loserId].name + ' −1');
+    renderMatch();
+    const el = document.querySelector('.pick[data-pid="' + winnerId + '"]');
+    if (el) el.classList.add('flash');
+  }
+
+  function undo() {
+    if (!undoStack.length) return;
+    match = JSON.parse(undoStack.pop());
+    const label = undoLabels.pop() || '';
+    save(); renderMatch();
+    toast(label ? '已撤销 · ' + label : '已撤销');
+  }
+
+  function chooseBench() {
+    if (match.n !== 3) return;
+    const html = '<h3>换谁下场？</h3><p>' + match.players[match.bench].name + ' 上场，替换其中一位，比分不变。</p>' +
+      match.onTable.map(function (id) {
+        return '<button class="btn opt" data-out="' + id + '">' + match.players[id].name + ' 下场</button>';
+      }).join('') + '<button class="btn cancel" data-cancel="1">取消</button>';
+    openSheet(html);
+    $('sheetBody').querySelectorAll('[data-out]').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        const outId = Number(btn.dataset.out);
+        undoStack.push(JSON.stringify(match)); undoLabels.push('换人');
+        match = R.swapPlayers(match, [match.bench, outId]);
+        save(); closeSheet(); renderMatch();
+        toast('已换人');
+      });
+    });
+    $('sheetBody').querySelector('[data-cancel]').addEventListener('click', closeSheet);
+  }
+
+  $('endBtn').addEventListener('click', function () {
+    const html = '<h3>结束本场？</h3><p>共 ' + match.round + ' 局。结束后生成报告并存入历史。</p>' +
+      '<button class="btn primary opt" id="confirmEnd">结束并生成报告</button>' +
+      '<button class="btn cancel" data-cancel="1">再打几局</button>';
+    openSheet(html);
+    $('sheetBody').querySelector('#confirmEnd').addEventListener('click', finishMatch);
+    $('sheetBody').querySelector('[data-cancel]').addEventListener('click', closeSheet);
+  });
+
+  function finishMatch() {
+    closeSheet();
+    const rec = { match: match, endedAt: Date.now() };
+    pushHistory(rec);
+    clearCurrent();
+    lastReport = rec;
+    renderReport(rec);
+    show('report');
+  }
+
+  /* ---------------- 报告 ---------------- */
+  function renderReport(rec) {
+    const m = rec.match;
+    $('repMeta').textContent = R.dateText(m.startedAt) + '　·　' + m.round + ' 局　·　' + R.durationText(rec.endedAt - m.startedAt);
+    const rank = R.ranking(m.players);
+    const topTie = rank.length > 1 && rank[1].score === rank[0].score;
+    $('repRank').innerHTML = rank.map(function (p, i) {
+      const crowned = i === 0 && m.round > 0 && !topTie;
+      const tie = topTie && p.score === rank[0].score;
+      return '<div class="rank-row' + (crowned ? ' top' : '') + '">' +
+        '<span class="pos">' + (i + 1) + '</span>' +
+        '<span class="nm">' + (crowned ? '🏆 ' : '') + p.name + '</span>' +
+        '<span class="wl">' + p.wins + ' 胜 ' + p.losses + ' 负　最长 ' + p.best + ' 连胜' + (tie ? '　并列' : '') + '</span>' +
+        '<span class="pts' + (p.score < 0 ? ' neg' : '') + '">' + (p.score > 0 ? '+' + p.score : p.score) + '</span></div>';
+    }).join('');
+    $('repLog').innerHTML = m.log.length
+      ? m.log.map(function (e) {
+          return '<div class="log-row"><span class="n">' + e.round + '</span><span><span class="w">' +
+            m.players[e.winner].name + '</span> 胜 ' + m.players[e.loser].name + '</span>' +
+            (m.n === 3 ? '<span class="rest">' + m.players[e.bench].name + ' 轮休</span>' : '') + '</div>';
+        }).join('')
+      : '<div class="empty">这一场还没打完一局。</div>';
+  }
+
+  $('copyBtn').addEventListener('click', function () {
+    if (!lastReport) return;
+    const text = R.textReport(lastReport.match, lastReport.endedAt);
+    if (navigator.clipboard) {
+      navigator.clipboard.writeText(text).then(function () { toast('已复制'); }, fallback);
+    } else fallback();
+    function fallback() {
+      const ta = document.createElement('textarea');
+      ta.value = text; document.body.appendChild(ta); ta.select();
+      try { document.execCommand('copy'); toast('已复制'); } catch (e) { toast('复制失败'); }
+      document.body.removeChild(ta);
+    }
+  });
+
+  $('imgBtn').addEventListener('click', function () {
+    if (!lastReport) return;
+    const url = renderReportImage(lastReport);
+    $('repImg').src = url;
+    $('downloadLink').href = url;
+    $('imgwrap').classList.add('on');
+  });
+  $('imgwrap').addEventListener('click', function (e) {
+    if (e.target === $('imgwrap') || e.target.id === 'repImg') $('imgwrap').classList.remove('on');
+  });
+
+  function renderReportImage(rec) {
+    const m = rec.match, W = 720, H = 1180, dpr = 2;
+    const c = document.createElement('canvas');
+    c.width = W * dpr; c.height = H * dpr;
+    const g = c.getContext('2d'); g.scale(dpr, dpr);
+    g.fillStyle = '#111113'; g.fillRect(0, 0, W, H);
+    g.fillStyle = '#E9B44C'; g.fillRect(56, 64, 28, 3);
+    g.fillStyle = '#AAAEB5'; g.font = '600 15px -apple-system, "PingFang SC", sans-serif';
+    g.fillText('台球记分 · 对局报告', 56, 104);
+    g.fillStyle = '#EEEFF1'; g.font = '600 44px -apple-system, "PingFang SC", sans-serif';
+    g.fillText(m.round + ' 局', 56, 176);
+    g.fillStyle = '#AAAEB5'; g.font = '400 17px -apple-system, "PingFang SC", sans-serif';
+    g.fillText(R.dateText(m.startedAt) + '　·　' + R.durationText(rec.endedAt - m.startedAt), 56, 210);
+
+    let y = 276;
+    const rank = R.ranking(m.players);
+    const topTie = rank.length > 1 && rank[1].score === rank[0].score;
+    rank.forEach(function (p, i) {
+      g.strokeStyle = '#232326'; g.lineWidth = 1;
+      g.beginPath(); g.moveTo(56, y - 34); g.lineTo(W - 56, y - 34); g.stroke();
+      g.fillStyle = '#6C6E76'; g.font = '400 17px -apple-system, "PingFang SC", sans-serif';
+      g.fillText(String(i + 1), 56, y + 8);
+      g.fillStyle = i === 0 && m.round > 0 && !topTie ? '#E9B44C' : '#EEEFF1';
+      g.font = '500 26px -apple-system, "PingFang SC", sans-serif';
+      g.fillText((i === 0 && m.round > 0 && !topTie ? '🏆 ' : '') + p.name, 96, y + 8);
+      g.fillStyle = '#6C6E76'; g.font = '400 15px -apple-system, "PingFang SC", sans-serif';
+      g.fillText(p.wins + ' 胜 ' + p.losses + ' 负 · 最长 ' + p.best + ' 连胜', 96, y + 34);
+      g.fillStyle = p.score < 0 ? '#AAAEB5' : '#EEEFF1';
+      g.font = '600 34px -apple-system, "PingFang SC", sans-serif';
+      g.textAlign = 'right'; g.fillText(p.score > 0 ? '+' + p.score : String(p.score), W - 56, y + 14); g.textAlign = 'left';
+      y += 96;
+    });
+
+    y += 10;
+    g.fillStyle = '#6C6E76'; g.font = '600 13px -apple-system, "PingFang SC", sans-serif';
+    g.fillText('逐局记录', 56, y); y += 30;
+    g.font = '400 16px -apple-system, "PingFang SC", sans-serif';
+    m.log.forEach(function (e) {
+      if (y > H - 70) return;
+      g.fillStyle = '#6C6E76'; g.fillText(String(e.round), 56, y);
+      g.fillStyle = '#C9CCD1'; g.fillText(m.players[e.winner].name + ' 胜 ' + m.players[e.loser].name, 96, y);
+      if (m.n === 3) {
+        g.fillStyle = '#454B54'; g.textAlign = 'right';
+        g.fillText(m.players[e.bench].name + ' 轮休', W - 56, y); g.textAlign = 'left';
+      }
+      y += 30;
+    });
+    return c.toDataURL('image/png');
+  }
+
+  $('againBtn').addEventListener('click', function () {
+    const names = lastReport ? lastReport.match.players.map(function (p) { return p.name; }) : null;
+    if (names && names.length) { setupN = names.length; setupNames = names.slice(); }
+    match = null; renderSetup(); show('setup');
+  });
+
+  /* ---------------- 历史 ---------------- */
+  function renderHistory() {
+    const h = getHistory();
+    const box = $('hlist');
+    if (!h.length) { box.innerHTML = '<div class="empty">还没有打完的对局。</div>'; return; }
+    box.innerHTML = '';
+    h.forEach(function (rec) {
+      const m = rec.match;
+      const top = R.ranking(m.players)[0];
+      const el = document.createElement('button');
+      el.className = 'hitem';
+      el.innerHTML = '<div><div class="d">' + R.dateText(m.startedAt) + '</div><div class="m">' +
+        m.players.length + ' 人 · ' + m.round + ' 局 · ' + R.durationText(rec.endedAt - m.startedAt) + '</div></div>' +
+        '<span class="top">' + (m.round > 0 ? top.name + ' ' + (top.score > 0 ? '+' + top.score : top.score) : '未记录') + '</span>';
+      el.addEventListener('click', function () { lastReport = rec; renderReport(rec); show('report'); });
+      box.appendChild(el);
+    });
+  }
+
+  renderSetup();
+  if (!storageOK) {
+    const w = $('storageWarn');
+    if (w) w.style.display = 'block';
+  }
+})();
+</script>
+<script>
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', function () {
+      navigator.serviceWorker.register('sw.js').catch(function () {});
+    });
+  }
+</script>
+</body>
+</html>
